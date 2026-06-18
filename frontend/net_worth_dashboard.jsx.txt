@@ -1,0 +1,359 @@
+import { useState, useEffect, useMemo } from "react";
+import {
+  Wallet, TrendingUp, Coins, PiggyBank, Shield, Building2, Briefcase,
+  CreditCard, FileText, Home, AlertCircle, Plus, Trash2, Save, X
+} from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+
+const ASSET_CATEGORIES = [
+  { id: "cash", label: "현금 / 은행", icon: Wallet, color: "#4A7A5C" },
+  { id: "robinhood", label: "Robinhood (주식)", icon: TrendingUp, color: "#2F6F4E" },
+  { id: "coinbase", label: "Coinbase (암호화폐)", icon: Coins, color: "#B8923D" },
+  { id: "ira", label: "MassMutual IRA", icon: PiggyBank, color: "#3D6B8A" },
+  { id: "life_insurance", label: "MassMutual 생명보험", icon: Shield, color: "#6B5B95" },
+  { id: "real_estate", label: "부동산", icon: Building2, color: "#8A5A3D" },
+  { id: "other_asset", label: "기타 자산", icon: Briefcase, color: "#7A7A6A" },
+];
+
+const LIABILITY_CATEGORIES = [
+  { id: "credit_card", label: "신용카드", icon: CreditCard, color: "#A23E3E" },
+  { id: "loan", label: "대출", icon: FileText, color: "#A2603E" },
+  { id: "mortgage", label: "모기지", icon: Home, color: "#8A4A4A" },
+  { id: "other_liability", label: "기타 부채", icon: AlertCircle, color: "#9A4A4A" },
+];
+
+const ALL_CATEGORIES = [...ASSET_CATEGORIES, ...LIABILITY_CATEGORIES];
+
+const STARTER_ACCOUNTS = [
+  { id: "acc_robinhood", type: "asset", category: "robinhood", name: "Robinhood", balance: 0 },
+  { id: "acc_coinbase", type: "asset", category: "coinbase", name: "Coinbase", balance: 0 },
+  { id: "acc_ira", type: "asset", category: "ira", name: "MassMutual IRA", balance: 0 },
+  { id: "acc_life", type: "asset", category: "life_insurance", name: "MassMutual 생명보험 (해지환급금)", balance: 0 },
+  { id: "acc_cash", type: "asset", category: "cash", name: "주거래 은행", balance: 0 },
+];
+
+function fmt(n) {
+  const sign = n < 0 ? "-" : "";
+  return sign + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function catInfo(id) {
+  return ALL_CATEGORIES.find((c) => c.id === id) || ALL_CATEGORIES[0];
+}
+
+export default function NetWorthDashboard() {
+  const [accounts, setAccounts] = useState([]);
+  const [snapshots, setSnapshots] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formType, setFormType] = useState("asset");
+  const [formCategory, setFormCategory] = useState("cash");
+  const [formName, setFormName] = useState("");
+  const [formBalance, setFormBalance] = useState("");
+  const [savedMsg, setSavedMsg] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      let acc = STARTER_ACCOUNTS;
+      let snaps = [];
+      try {
+        const r = await window.storage.get("nw_accounts");
+        if (r && r.value) acc = JSON.parse(r.value);
+      } catch (e) {}
+      try {
+        const r = await window.storage.get("nw_snapshots");
+        if (r && r.value) snaps = JSON.parse(r.value);
+      } catch (e) {}
+      setAccounts(acc);
+      setSnapshots(snaps);
+      setLoaded(true);
+    })();
+  }, []);
+
+  async function persistAccounts(next) {
+    setAccounts(next);
+    try {
+      await window.storage.set("nw_accounts", JSON.stringify(next));
+    } catch (e) {
+      console.error("save failed", e);
+    }
+  }
+
+  async function persistSnapshots(next) {
+    setSnapshots(next);
+    try {
+      await window.storage.set("nw_snapshots", JSON.stringify(next));
+    } catch (e) {
+      console.error("save failed", e);
+    }
+  }
+
+  function updateBalance(id, value) {
+    const num = parseFloat(value.replace(/,/g, ""));
+    const next = accounts.map((a) => (a.id === id ? { ...a, balance: isNaN(num) ? 0 : num } : a));
+    persistAccounts(next);
+  }
+
+  function deleteAccount(id) {
+    persistAccounts(accounts.filter((a) => a.id !== id));
+  }
+
+  function addAccount() {
+    if (!formName.trim()) return;
+    const num = parseFloat(formBalance.replace(/,/g, "")) || 0;
+    const next = [
+      ...accounts,
+      { id: "acc_" + Date.now(), type: formType, category: formCategory, name: formName.trim(), balance: num },
+    ];
+    persistAccounts(next);
+    setFormName("");
+    setFormBalance("");
+    setShowForm(false);
+  }
+
+  const totals = useMemo(() => {
+    const assets = accounts.filter((a) => a.type === "asset");
+    const liabilities = accounts.filter((a) => a.type === "liability");
+    const totalAssets = assets.reduce((s, a) => s + (a.balance || 0), 0);
+    const totalLiabilities = liabilities.reduce((s, a) => s + (a.balance || 0), 0);
+    return { totalAssets, totalLiabilities, netWorth: totalAssets - totalLiabilities, assets, liabilities };
+  }, [accounts]);
+
+  const pieData = useMemo(() => {
+    const byCategory = {};
+    totals.assets.forEach((a) => {
+      if (!a.balance) return;
+      byCategory[a.category] = (byCategory[a.category] || 0) + a.balance;
+    });
+    return Object.entries(byCategory).map(([cat, value]) => ({
+      name: catInfo(cat).label,
+      value,
+      color: catInfo(cat).color,
+    }));
+  }, [totals.assets]);
+
+  const trendData = useMemo(() => {
+    return [...snapshots]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((s) => ({ date: s.date.slice(5), netWorth: s.netWorth }));
+  }, [snapshots]);
+
+  const prevSnapshot = useMemo(() => {
+    const sorted = [...snapshots].filter((s) => s.date !== todayStr()).sort((a, b) => b.date.localeCompare(a.date));
+    return sorted[0];
+  }, [snapshots]);
+
+  const delta = prevSnapshot ? totals.netWorth - prevSnapshot.netWorth : null;
+
+  async function saveTodaySnapshot() {
+    const today = todayStr();
+    const breakdown = {};
+    totals.assets.forEach((a) => {
+      breakdown[a.category] = (breakdown[a.category] || 0) + a.balance;
+    });
+    const entry = { date: today, totalAssets: totals.totalAssets, totalLiabilities: totals.totalLiabilities, netWorth: totals.netWorth, breakdown };
+    const next = [...snapshots.filter((s) => s.date !== today), entry];
+    await persistSnapshots(next);
+    setSavedMsg("오늘 스냅샷 저장 완료");
+    setTimeout(() => setSavedMsg(""), 2500);
+  }
+
+  if (!loaded) {
+    return (
+      <div style={{ fontFamily: "Georgia, serif", padding: 40, color: "#8A8470" }}>
+        불러오는 중...
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        "--ink": "#1B2A4A",
+        "--paper": "#FAF8F4",
+        "--paper-2": "#F1ECE1",
+        "--gold": "#B8923D",
+        "--sage": "#4A7A5C",
+        "--brick": "#A23E3E",
+        "--border": "#DCD5C5",
+        background: "var(--paper)",
+        color: "var(--ink)",
+        minHeight: "100%",
+        fontFamily: "'Segoe UI', system-ui, sans-serif",
+        padding: "32px 20px",
+      }}
+    >
+      <div style={{ maxWidth: 880, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 28, borderBottom: "2px solid var(--ink)", paddingBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: "2px", textTransform: "uppercase", color: "var(--gold)", fontWeight: 700 }}>Personal Ledger</div>
+            <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 28, margin: "4px 0 0", fontWeight: 700 }}>순자산 대시보드</h1>
+          </div>
+          <div style={{ fontSize: 13, color: "#8A8470" }}>{todayStr()}</div>
+        </div>
+
+        {/* Net worth hero */}
+        <div style={{ background: "var(--ink)", color: "var(--paper)", borderRadius: 4, padding: "28px 32px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+          <div style={{ fontSize: 12, letterSpacing: "1.5px", textTransform: "uppercase", opacity: 0.65, marginBottom: 6 }}>순자산 (Net Worth)</div>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 44, fontWeight: 700, lineHeight: 1.1 }}>{fmt(totals.netWorth)}</div>
+          {delta !== null && (
+            <div style={{ marginTop: 8, fontSize: 14, color: delta >= 0 ? "#8FD9A8" : "#E8A0A0" }}>
+              {delta >= 0 ? "▲" : "▼"} {fmt(Math.abs(delta))} 전일 스냅샷 대비
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 32, marginTop: 20, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.18)" }}>
+            <div>
+              <div style={{ fontSize: 11, opacity: 0.6, textTransform: "uppercase", letterSpacing: "1px" }}>총 자산</div>
+              <div style={{ fontSize: 19, fontWeight: 600, color: "#8FD9A8" }}>{fmt(totals.totalAssets)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, opacity: 0.6, textTransform: "uppercase", letterSpacing: "1px" }}>총 부채</div>
+              <div style={{ fontSize: 19, fontWeight: 600, color: "#E8A0A0" }}>{fmt(totals.totalLiabilities)}</div>
+            </div>
+          </div>
+          <button
+            onClick={saveTodaySnapshot}
+            style={{ position: "absolute", top: 24, right: 24, background: "var(--gold)", color: "var(--ink)", border: "none", borderRadius: 4, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <Save size={14} /> 오늘 스냅샷 저장
+          </button>
+          {savedMsg && <div style={{ position: "absolute", top: 60, right: 24, fontSize: 12, color: "#8FD9A8" }}>{savedMsg}</div>}
+        </div>
+
+        {/* Charts row */}
+        <div style={{ display: "grid", gridTemplateColumns: trendData.length > 1 ? "1fr 1fr" : "1fr", gap: 20, marginBottom: 28 }}>
+          <div style={{ background: "var(--paper-2)", borderRadius: 4, padding: 18, border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: "#8A8470", marginBottom: 10 }}>자산 구성</div>
+            {pieData.length === 0 ? (
+              <div style={{ fontSize: 13, color: "#8A8470", padding: "30px 0", textAlign: "center" }}>자산을 입력하면 차트가 표시됩니다</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                    {pieData.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => fmt(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 8, justifyContent: "center" }}>
+              {pieData.map((p, idx) => (
+                <div key={idx} style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5, color: "#5A5648" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, display: "inline-block" }} />
+                  {p.name}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {trendData.length > 1 && (
+            <div style={{ background: "var(--paper-2)", borderRadius: 4, padding: 18, border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: "#8A8470", marginBottom: 10 }}>순자산 추이</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => "$" + Math.round(v / 1000) + "k"} />
+                  <Tooltip formatter={(v) => fmt(v)} />
+                  <Line type="monotone" dataKey="netWorth" stroke="var(--gold)" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        {/* Accounts list */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "1px", color: "#8A8470", fontWeight: 700 }}>계좌 / 자산 목록</div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            style={{ background: "transparent", border: "1px solid var(--ink)", borderRadius: 4, padding: "6px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--ink)" }}
+          >
+            {showForm ? <X size={13} /> : <Plus size={13} />} {showForm ? "닫기" : "항목 추가"}
+          </button>
+        </div>
+
+        {showForm && (
+          <div style={{ background: "var(--paper-2)", border: "1px solid var(--border)", borderRadius: 4, padding: 16, marginBottom: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <select value={formType} onChange={(e) => { setFormType(e.target.value); setFormCategory(e.target.value === "asset" ? "cash" : "credit_card"); }} style={selStyle}>
+              <option value="asset">자산</option>
+              <option value="liability">부채</option>
+            </select>
+            <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)} style={selStyle}>
+              {(formType === "asset" ? ASSET_CATEGORIES : LIABILITY_CATEGORIES).map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+            <input placeholder="이름 (예: Chase Checking)" value={formName} onChange={(e) => setFormName(e.target.value)} style={inputStyle} />
+            <input placeholder="잔액 ($)" value={formBalance} onChange={(e) => setFormBalance(e.target.value)} style={inputStyle} />
+            <button onClick={addAccount} style={{ gridColumn: "1 / -1", background: "var(--ink)", color: "var(--paper)", border: "none", borderRadius: 4, padding: "10px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+              추가하기
+            </button>
+          </div>
+        )}
+
+        <AccountGroup title="자산" items={totals.assets} onUpdate={updateBalance} onDelete={deleteAccount} positive />
+        <AccountGroup title="부채" items={totals.liabilities} onUpdate={updateBalance} onDelete={deleteAccount} positive={false} />
+
+        <div style={{ marginTop: 30, fontSize: 12, color: "#A29C88", textAlign: "center", lineHeight: 1.6 }}>
+          현재는 수동 입력 버전입니다. 다음 단계에서 Robinhood / Coinbase / Plaid 자동 연동을 추가하면<br />
+          이 잔액들이 매일 자동으로 갱신됩니다.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const selStyle = { padding: "9px 10px", borderRadius: 4, border: "1px solid #DCD5C5", fontSize: 13, background: "#fff", color: "#1B2A4A" };
+const inputStyle = { padding: "9px 10px", borderRadius: 4, border: "1px solid #DCD5C5", fontSize: 13, background: "#fff", color: "#1B2A4A" };
+
+function AccountGroup({ title, items, onUpdate, onDelete, positive }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: positive ? "#4A7A5C" : "#A23E3E", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>{title}</div>
+      <div style={{ border: "1px solid #DCD5C5", borderRadius: 4, overflow: "hidden" }}>
+        {items.map((a, idx) => {
+          const info = catInfo(a.category);
+          const Icon = info.icon;
+          return (
+            <div
+              key={a.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 14px",
+                background: idx % 2 === 0 ? "#fff" : "#FAF8F4",
+                borderTop: idx === 0 ? "none" : "1px solid #ECE6D6",
+              }}
+            >
+              <Icon size={16} color={info.color} style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</div>
+                <div style={{ fontSize: 11, color: "#A29C88" }}>{info.label}</div>
+              </div>
+              <input
+                value={a.balance === 0 ? "" : a.balance.toLocaleString("en-US")}
+                placeholder="0"
+                onChange={(e) => onUpdate(a.id, e.target.value)}
+                style={{ width: 110, textAlign: "right", padding: "6px 8px", borderRadius: 4, border: "1px solid #DCD5C5", fontSize: 13, fontFamily: "Georgia, serif" }}
+              />
+              <button onClick={() => onDelete(a.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#C7BFA8", padding: 4 }}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
