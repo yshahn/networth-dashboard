@@ -1,0 +1,55 @@
+[debug] [2026-06-18T22:09:16.825Z] ----------------------------------------------------------------------
+[debug] [2026-06-18T22:09:16.826Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\relia\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js functions:secrets:set PLAID_CLIENT_ID
+[debug] [2026-06-18T22:09:16.827Z] CLI Version:   15.22.0
+[debug] [2026-06-18T22:09:16.827Z] Platform:      win32
+[debug] [2026-06-18T22:09:16.827Z] Node Version:  v24.14.1
+[debug] [2026-06-18T22:09:16.827Z] Detected Agent: unknown
+[debug] [2026-06-18T22:09:16.827Z] Time:          Thu Jun 18 2026 18:09:16 GMT-0400 (Eastern Daylight Time)
+[debug] [2026-06-18T22:09:16.827Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-18T22:09:17.011Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-18T22:09:17.011Z] > authorizing via signed-in user (yshahn@gmail.com)
+[debug] [2026-06-18T22:09:17.012Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:17.012Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:17.012Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com [none]
+[debug] [2026-06-18T22:09:17.012Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com  x-goog-user-project=networth-yong-app-2026
+[debug] [2026-06-18T22:09:17.454Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com 200
+[debug] [2026-06-18T22:09:17.454Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com [omitted]
+[debug] [2026-06-18T22:09:17.455Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:17.455Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:17.455Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com:enable [none]
+[debug] [2026-06-18T22:09:17.455Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com:enable  x-goog-user-project=networth-yong-app-2026
+[debug] [2026-06-18T22:09:18.190Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com:enable 200
+[debug] [2026-06-18T22:09:18.190Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/secretmanager.googleapis.com:enable [omitted]
+[debug] [2026-06-18T22:09:28.204Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-18T22:09:28.204Z] > authorizing via signed-in user (yshahn@gmail.com)
+[debug] [2026-06-18T22:09:28.204Z] [iam] checking project networth-yong-app-2026 for permissions ["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]
+[debug] [2026-06-18T22:09:28.205Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:28.205Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:28.205Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026:testIamPermissions [none]
+[debug] [2026-06-18T22:09:28.205Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026:testIamPermissions  x-goog-user-project=networth-yong-app-2026
+[debug] [2026-06-18T22:09:28.205Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-06-18T22:09:28.446Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026:testIamPermissions 200
+[debug] [2026-06-18T22:09:28.446Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-06-18T22:09:28.447Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:28.447Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:28.447Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/cloudresourcemanager.googleapis.com [none]
+[debug] [2026-06-18T22:09:28.447Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/cloudresourcemanager.googleapis.com  x-goog-user-project=networth-yong-app-2026
+[debug] [2026-06-18T22:09:28.899Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/cloudresourcemanager.googleapis.com 200
+[debug] [2026-06-18T22:09:28.900Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/networth-yong-app-2026/services/cloudresourcemanager.googleapis.com [omitted]
+[debug] [2026-06-18T22:09:28.902Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:28.902Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:28.902Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026 [none]
+[debug] [2026-06-18T22:09:28.999Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026 200
+[debug] [2026-06-18T22:09:28.999Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/networth-yong-app-2026 {"projectNumber":"572612375699","projectId":"networth-yong-app-2026","lifecycleState":"ACTIVE","name":"networth-yong-app-2026","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-06-18T22:04:50.029Z"}
+[debug] [2026-06-18T22:09:29.000Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:29.000Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:29.000Z] >>> [apiv2][query] GET https://secretmanager.googleapis.com/v1/projects/networth-yong-app-2026/secrets/PLAID_CLIENT_ID [none]
+[debug] [2026-06-18T22:09:29.321Z] <<< [apiv2][status] GET https://secretmanager.googleapis.com/v1/projects/networth-yong-app-2026/secrets/PLAID_CLIENT_ID 404
+[debug] [2026-06-18T22:09:29.321Z] <<< [apiv2][body] GET https://secretmanager.googleapis.com/v1/projects/networth-yong-app-2026/secrets/PLAID_CLIENT_ID {"error":{"code":404,"message":"Secret [projects/572612375699/secrets/PLAID_CLIENT_ID] not found.","status":"NOT_FOUND"}}
+[debug] [2026-06-18T22:09:29.322Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:29.322Z] Checked if tokens are valid: true, expires at: 1781823556573
+[debug] [2026-06-18T22:09:29.322Z] >>> [apiv2][query] POST https://secretmanager.googleapis.com/v1/projects/networth-yong-app-2026/secrets secretId=PLAID_CLIENT_ID
+[debug] [2026-06-18T22:09:29.322Z] >>> [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/networth-yong-app-2026/secrets {"name":"PLAID_CLIENT_ID","replication":{"automatic":{}},"labels":{"firebase-managed":"functions"}}
+[debug] [2026-06-18T22:09:29.635Z] <<< [apiv2][status] POST https://secretmanager.googleapis.com/v1/projects/networth-yong-app-2026/secrets 200
+[debug] [2026-06-18T22:09:29.636Z] <<< [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/networth-yong-app-2026/secrets {"name":"projects/572612375699/secrets/PLAID_CLIENT_ID","replication":{"automatic":{}},"createTime":"2026-06-18T22:09:29.726770Z","labels":{"firebase-managed":"functions"},"etag":"\"16548e6e1f8a85\""}
