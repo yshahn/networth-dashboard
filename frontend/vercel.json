@@ -1,0 +1,13 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com https://www.google.com https://www.gstatic.com; frame-src https://cdn.plaid.com https://www.google.com; connect-src 'self' https://*.plaid.com https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net https://www.google.com https://www.gstatic.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:;"
+        }
+      ]
+    }
+  ]
+}
