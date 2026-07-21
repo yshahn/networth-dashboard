@@ -419,7 +419,7 @@ exports.getCoinbaseBalances = onCall(
     requireAuth(request);
 
     const apiKey    = COINBASE_API_KEY.value();
-    const secretPem = COINBASE_API_SECRET.value();
+    const rawSecret = COINBASE_API_SECRET.value().trim();
     const crypto    = require("crypto");
 
     const host      = "api.coinbase.com";
@@ -428,7 +428,7 @@ exports.getCoinbaseBalances = onCall(
     const nonce     = crypto.randomBytes(16).toString("hex");
     const timestamp = Math.floor(Date.now() / 1000);
 
-    const header  = Buffer.from(JSON.stringify({ alg:"ES256", kid: apiKey, nonce })).toString("base64url");
+    const header  = Buffer.from(JSON.stringify({ alg: "ES256", kid: apiKey, nonce })).toString("base64url");
     const payload = Buffer.from(JSON.stringify({
       sub: apiKey,
       iss: "cdp",
@@ -439,14 +439,24 @@ exports.getCoinbaseBalances = onCall(
 
     const signingInput = `${header}.${payload}`;
 
-    let pemKey = secretPem.trim();
-    if (!pemKey.includes("BEGIN")) {
-      pemKey = `-----BEGIN PRIVATE KEY-----\n${pemKey}\n-----END PRIVATE KEY-----`;
-    }
-
     let jwt;
     try {
-      const keyObject = crypto.createPrivateKey({ key: pemKey, format: "pem" });
+      // Ed25519 raw private key (32 bytes) — wrap into DER/PEM for Node crypto
+      const rawKeyBytes = Buffer.from(rawSecret, "base64");
+
+      let keyObject;
+      if (rawKeyBytes.length === 32) {
+        // Raw Ed25519 private key — wrap into PKCS#8 DER
+        const pkcs8Header = Buffer.from(
+          "302e020100300506032b657004220420", "hex"
+        );
+        const pkcs8Der = Buffer.concat([pkcs8Header, rawKeyBytes]);
+        keyObject = crypto.createPrivateKey({ key: pkcs8Der, format: "der", type: "pkcs8" });
+      } else {
+        // Already PEM or longer format — try directly
+        keyObject = crypto.createPrivateKey({ key: rawKeyBytes, format: "der", type: "pkcs8" });
+      }
+
       const sig = crypto.sign(null, Buffer.from(signingInput), keyObject);
       jwt = `${signingInput}.${sig.toString("base64url")}`;
     } catch (err) {
