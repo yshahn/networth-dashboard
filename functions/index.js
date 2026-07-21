@@ -491,3 +491,17 @@ const rawKeyBytes = Buffer.from(rawSecret, "base64");
     }
   }
 );
+exports.getBTCPrice = onCall({}, async (request) => {
+  requireAuth(request);
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+    if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
+    const data = await res.json();
+    const price = data?.bitcoin?.usd;
+    if (!price) throw new Error("BTC price not found");
+    return { price };
+  } catch (err) {
+    logger.error("getBTCPrice failed", err.message);
+    throw new HttpsError("internal", "BTC 시세 조회에 실패했습니다.");
+  }
+});
