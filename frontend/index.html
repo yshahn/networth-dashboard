@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Personal Ledger</title>
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0B1929;
+  --navy-2:#132238;
+  --navy-3:#1C3050;
+  --gold:#C8922A;
+  --gold-light:#E8B44A;
+  --green:#22C55E;
+  --red:#EF4444;
+  --bg:#F0F4F8;
+  --surface:#FFFFFF;
+  --surface-2:#F8FAFC;
+  --border:#E2E8F0;
+  --text:#0F172A;
+  --text-2:#475569;
+  --text-3:#94A3B8;
+  --radius:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* AUTH */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-3) 100%);}
+.auth-card{background:var(--surface);border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:0 24px 80px rgba(0,0,0,.3);}
+.auth-logo{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy);margin-bottom:8px;}
+.auth-sub{font-size:14px;color:var(--text-2);margin-bottom:32px;}
+.auth-card input{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+.auth-card input:focus{border-color:var(--gold);}
+.auth-gap{height:12px;}
+.btn-primary{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:background .2s;}
+.btn-primary:hover{background:var(--navy-3);}
+.btn-secondary{width:100%;padding:13px;background:transparent;color:var(--text-2);border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px;transition:all .2s;}
+.btn-secondary:hover{border-color:var(--navy);color:var(--navy);}
+.auth-error{font-size:13px;color:var(--red);margin-top:12px;text-align:center;}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{background:var(--navy);color:#fff;padding:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-brand{padding:28px 24px 24px;border-bottom:1px solid rgba(255,255,255,.08);}
+.brand-name{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;line-height:1;}
+.brand-tag{font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;letter-spacing:.5px;}
+.sidebar-section{padding:24px 16px 8px;font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,.3);text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;margin:2px 8px;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s;border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:'Inter',sans-serif;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-item.active{background:rgba(200,146,42,.15);color:var(--gold-light);}
+.nav-icon{width:18px;height:18px;opacity:.7;flex-shrink:0;}
+.sidebar-footer{margin-top:auto;padding:16px;}
+.btn-logout{width:100%;padding:10px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.btn-logout:hover{background:rgba(255,255,255,.1);color:#fff;}
+
+/* MAIN */
+.main{padding:32px 36px;overflow-y:auto;}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;}
+.page-title{font-size:22px;font-weight:700;color:var(--text);}
+.page-date{font-size:13px;color:var(--text-3);}
+
+/* HERO NET WORTH */
+.hero-card{background:linear-gradient(135deg,var(--navy) 0%,#1A3A5C 100%);border-radius:var(--radius);padding:32px 36px;margin-bottom:24px;position:relative;overflow:hidden;}
+.hero-card::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(200,146,42,.15) 0%,transparent 70%);}
+.hero-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:10px;}
+.hero-amount{font-family:'DM Serif Display',serif;font-size:52px;color:#fff;line-height:1;margin-bottom:8px;}
+.hero-delta{font-size:13px;font-weight:500;margin-bottom:28px;}
+.hero-delta.up{color:var(--green);}
+.hero-delta.down{color:var(--red);}
+.hero-delta.neutral{color:rgba(255,255,255,.4);}
+.hero-stats{display:flex;gap:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.1);}
+.hero-stat-label{font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.hero-stat-val{font-size:20px;font-weight:600;}
+.hero-stat-val.green{color:#4ADE80;}
+.hero-stat-val.red{color:#F87171;}
+.btn-snapshot{position:absolute;top:28px;right:28px;background:rgba(200,146,42,.2);color:var(--gold-light);border:1px solid rgba(200,146,42,.3);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;backdrop-filter:blur(8px);}
+.btn-snapshot:hover{background:rgba(200,146,42,.35);}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);}
+.stat-card-label{font-size:12px;color:var(--text-3);font-weight:500;margin-bottom:8px;}
+.stat-card-val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}
+.stat-card-sub{font-size:12px;color:var(--text-3);margin-top:4px;}
+
+/* TREND CHART */
+.chart-card{background:var(--surface);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:24px;}
+.chart-card-header{font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:16px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* SECTION */
+.section{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
+.section-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border);}
+.section-title{font-size:13px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.5px;}
+.section-title.green{color:#16A34A;}
+.section-title.red{color:#DC2626;}
+.btn-sm{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.btn-add{background:var(--navy);color:#fff;border:none;}
+.btn-add:hover{background:var(--navy-3);}
+.btn-connect{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 100%);color:#fff;border:none;}
+.btn-connect:hover{opacity:.9;}
+.btn-outline-sm{background:transparent;color:var(--text-2);border:1.5px solid var(--border);}
+.btn-outline-sm:hover{border-color:var(--navy);color:var(--navy);}
+
+/* ACCOUNT ROWS */
+.account-row{display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:1px solid var(--border);transition:background .1s;}
+.account-row:last-child{border-bottom:none;}
+.account-row:hover{background:var(--surface-2);}
+.account-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.icon-plaid{background:#EEF2FF;}
+.icon-btc{background:#FEF9EE;}
+.icon-re{background:#F0FDF4;}
+.icon-ira{background:#F5F3FF;}
+.icon-ins{background:#FFF7ED;}
+.icon-cash{background:#F0F9FF;}
+.icon-other{background:#F8FAFC;}
+.icon-debt{background:#FFF5F5;}
+.account-info{flex:1;min-width:0;}
+.account-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.account-sub{font-size:12px;color:var(--text-3);margin-top:2px;}
+.account-amount{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text);}
+.account-amount.debt{color:var(--red);}
+.btn-refresh{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border);transition:all .2s;}
+.btn-refresh:hover{background:var(--navy);color:#fff;border-color:var(--navy);}
+.btn-del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px 6px;border-radius:4px;font-size:16px;transition:color .2s;}
+.btn-del:hover{color:var(--red);}
+.input-balance{width:120px;text-align:right;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+.input-balance:focus{border-color:var(--gold);}
+
+/* EMPTY STATE */
+.empty-state{padding:32px 24px;text-align:center;color:var(--text-3);font-size:13px;}
+
+/* ADD FORM */
+.form-card{background:var(--surface-2);border-bottom:1px solid var(--border);padding:20px 24px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.form-grid select,.form-grid input{padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;outline:none;background:#fff;color:var(--text);transition:border-color .2s;}
+.form-grid select:focus,.form-grid input:focus{border-color:var(--gold);}
+.form-full{grid-column:1/-1;}
+.form-hint{font-size:12px;color:var(--gold);grid-column:1/-1;padding-top:2px;}
+.btn-submit{padding:11px 24px;background:var(--navy);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-submit:hover{background:var(--navy-3);}
+
+[hidden]{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">Personal Ledger</div>
+    <div class="auth-sub">Your private financial dashboard</div>
+    <input type="email" id="email" placeholder="Email address" />
+    <div class="auth-gap"></div>
+    <input type="password" id="password" placeholder="Password (6+ characters)" />
+    <div class="auth-gap"></div>
+    <button class="btn-primary" id="signin-btn">Sign In</button>
+    <button class="btn-secondary" id="signup-btn">Create Account</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" hidden>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">Personal Ledger</div>
+      <div class="brand-tag">Net Worth Dashboard</div>
+    </div>
+    <div class="sidebar-section">Overview</div>
+    <button class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <div class="sidebar-section">Accounts</div>
+    <button class="nav-item" id="nav-connect" onclick="document.getElementById('connect-btn').click()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Connect Account
+    </button>
+    <button class="nav-item" onclick="document.getElementById('add-manual-btn').click()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Manual Entry
+    </button>
+    <div class="sidebar-footer">
+      <button class="btn-logout" id="logout-btn">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <div class="page-header">
+      <div class="page-title">Overview</div>
+      <div class="page-date" id="today-date"></div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero-card">
+      <div class="hero-label">Total Net Worth</div>
+      <div class="hero-amount" id="net-worth">$0.00</div>
+      <div class="hero-delta neutral" id="delta">No snapshot yet</div>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-label">Total Assets</div>
+          <div class="hero-stat-val green" id="total-assets">$0.00</div>
+        </div>
+        <div>
+          <div class="hero-stat-label">Total Liabilities</div>
+          <div class="hero-stat-val red" id="total-liabilities">$0.00</div>
+        </div>
+      </div>
+      <button class="btn-snapshot" id="snapshot-btn">📸 Save Snapshot</button>
+    </div>
+
+    <!-- TREND -->
+    <div class="chart-card" id="trend-card" hidden>
+      <div class="chart-card-header">Net Worth Trend</div>
+      <div id="trend-chart"></div>
+    </div>
+
+    <!-- PLAID -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Connected Accounts</div>
+        <button class="btn-sm btn-connect" id="connect-btn">+ Link Account</button>
+      </div>
+      <div id="plaid-accounts"></div>
+      <div class="empty-state" id="plaid-empty">Link your bank or brokerage via the button above.</div>
+    </div>
+
+    <!-- MANUAL ASSETS -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title green">Assets</div>
+        <button class="btn-sm btn-add" id="add-manual-btn">+ Add</button>
+      </div>
+      <div class="form-card" id="manual-form" hidden>
+        <div class="form-grid">
+          <select id="m-type"><option value="asset">Asset</option><option value="liability">Liability</option></select>
+          <select id="m-category"></select>
+          <input type="text" id="m-name" placeholder="Name (e.g. MassMutual IRA)" />
+          <input type="number" id="m-balance" placeholder="Amount ($)" step="any" />
+          <input type="text" id="m-address" placeholder="Full address (real estate only)" class="form-full" hidden />
+          <div id="btc-hint" class="form-hint" hidden>Enter BTC quantity (e.g. 0.5) — will auto-convert at current price.</div>
+        </div>
+        <button class="btn-submit" id="m-save-btn">Add Entry</button>
+      </div>
+      <div id="manual-assets"></div>
+      <div class="empty-state" id="manual-assets-empty">No assets added yet.</div>
+    </div>
+
+    <!-- MANUAL LIABILITIES -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title red">Liabilities</div>
+      </div>
+      <div id="manual-liabilities"></div>
+      <div class="empty-state" id="manual-liabilities-empty">No liabilities added yet.</div>
+    </div>
+
+  </main>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyAc9Vv1F1ODTX7358XrSm9FSSfD73rKvn8",
+  authDomain:"networth-yong-app-2026.firebaseapp.com",
+  projectId:"networth-yong-app-2026",
+  storageBucket:"networth-yong-app-2026.firebasestorage.app",
+  messagingSenderId:"572612375699",
+  appId:"1:572612375699:web:24fa7a0673e2e261288966"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const functions = getFunctions(app,"us-central1");
+
+const ASSET_CATS = [
+  {id:"cash",label:"Cash / Bank",icon:"🏦",cls:"icon-cash"},
+  {id:"robinhood",label:"Robinhood (Stocks)",icon:"📈",cls:"icon-plaid"},
+  {id:"bitcoin",label:"Bitcoin (BTC)",icon:"₿",cls:"icon-btc"},
+  {id:"ira",label:"MassMutual IRA",icon:"🏛",cls:"icon-ira"},
+  {id:"life_insurance",label:"MassMutual Life Insurance",icon:"🛡",cls:"icon-ins"},
+  {id:"real_estate",label:"Real Estate",icon:"🏠",cls:"icon-re"},
+  {id:"other_asset",label:"Other Asset",icon:"💼",cls:"icon-other"},
+];
+const LIAB_CATS = [
+  {id:"credit_card",label:"Credit Card",icon:"💳",cls:"icon-debt"},
+  {id:"loan",label:"Loan",icon:"📋",cls:"icon-debt"},
+  {id:"mortgage",label:"Mortgage",icon:"🏡",cls:"icon-debt"},
+  {id:"other_liability",label:"Other Liability",icon:"⚠️",cls:"icon-debt"},
+];
+const ALL_CATS = [...ASSET_CATS,...LIAB_CATS];
+const catInfo = id => ALL_CATS.find(c=>c.id===id)||{label:id,icon:"💰",cls:"icon-other"};
+
+const fmt = n => {
+  const sign = n < 0 ? "-" : "";
+  return sign + "$" + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+};
+const todayStr = () => new Date().toISOString().slice(0,10);
+
+let currentUser=null,plaidAccounts=[],manualAccounts=[],snapshots=[],btcPrice=null;
+
+document.getElementById("signin-btn").onclick = async()=>{
+  try{await signInWithEmailAndPassword(auth,email.value,password.value);}
+  catch(e){document.getElementById("auth-error").textContent=e.message;}
+};
+document.getElementById("signup-btn").onclick = async()=>{
+  try{await createUserWithEmailAndPassword(auth,email.value,password.value);}
+  catch(e){document.getElementById("auth-error").textContent=e.message;}
+};
+document.getElementById("logout-btn").onclick = ()=>signOut(auth);
+
+const isOAuthRedirect = new URLSearchParams(window.location.search).has("oauth_state_id");
+
+onAuthStateChanged(auth, async user=>{
+  if(user){
+    currentUser=user;
+    document.getElementById("auth-screen").hidden=true;
+    document.getElementById("dashboard").hidden=false;
+    document.getElementById("today-date").textContent=new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+    await Promise.all([loadManualAccounts(),refreshPlaidAccounts(),fetchBTCPrice(),loadSnapshots()]);
+    render();
+    if(isOAuthRedirect){
+      const saved=sessionStorage.getItem("plaid_link_token");
+      if(saved) setTimeout(()=>openPlaidLink(saved,true),500);
+    }
+  } else {
+    currentUser=null;
+    document.getElementById("auth-screen").hidden=false;
+    document.getElementById("dashboard").hidden=true;
+  }
+});
+
+async function fetchBTCPrice(){
+  try{const fn=httpsCallable(functions,"getBTCPrice");const res=await fn();btcPrice=res.data.price;}
+  catch(e){
+    try{const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");const d=await r.json();btcPrice=d?.bitcoin?.usd||null;}
+    catch(e2){btcPrice=null;}
+  }
+}
+
+document.getElementById("connect-btn").onclick = async()=>{
+  try{
+    const fn=httpsCallable(functions,"createLinkToken");
+    const res=await fn();
+    sessionStorage.setItem("plaid_link_token",res.data.linkToken);
+    openPlaidLink(res.data.linkToken);
+  }catch(e){alert("Connection failed: "+e.message);}
+};
+
+function openPlaidLink(linkToken,isOAuth=false){
+  const config={
+    token:linkToken,
+    onSuccess:async(publicToken,metadata)=>{
+      sessionStorage.removeItem("plaid_link_token");
+      const fn=httpsCallable(functions,"exchangePublicToken");
+      await fn({publicToken,institutionName:metadata.institution?.name||"Unknown"});
+      await refreshPlaidAccounts();render();
+    },
+    onExit:err=>{if(err)console.error("Plaid exit",err);}
+  };
+  if(isOAuth) config.receivedRedirectUri=window.location.href;
+  Plaid.create(config).open();
+}
+
+async function refreshPlaidAccounts(){
+  try{const fn=httpsCallable(functions,"getBalances");const res=await fn();plaidAccounts=res.data.accounts||[];}
+  catch(e){console.error("getBalances failed",e);plaidAccounts=[];}
+}
+
+async function loadManualAccounts(){
+  const snap=await getDocs(collection(db,"users",currentUser.uid,"accounts"));
+  manualAccounts=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+const mType=document.getElementById("m-type");
+const mCat=document.getElementById("m-category");
+const mAddr=document.getElementById("m-address");
+const btcHint=document.getElementById("btc-hint");
+const mBalance=document.getElementById("m-balance");
+
+function populateCats(){
+  const cats=mType.value==="asset"?ASSET_CATS:LIAB_CATS;
+  mCat.innerHTML=cats.map(c=>`<option value="${c.id}">${c.label}</option>`).join("");
+  toggleFields();
+}
+function toggleFields(){
+  mAddr.hidden=mCat.value!=="real_estate";
+  btcHint.hidden=mCat.value!=="bitcoin";
+  mBalance.placeholder=mCat.value==="bitcoin"?"BTC quantity (e.g. 0.5)":"Amount ($)";
+}
+mType.onchange=populateCats;mCat.onchange=toggleFields;populateCats();
+
+document.getElementById("add-manual-btn").onclick=()=>{
+  const f=document.getElementById("manual-form");f.hidden=!f.hidden;
+};
+
+document.getElementById("m-save-btn").onclick=async()=>{
+  const name=document.getElementById("m-name").value.trim();
+  const rawVal=parseFloat(mBalance.value)||0;
+  const address=mCat.value==="real_estate"?mAddr.value.trim():"";
+  if(!name)return;
+  let balance=rawVal,btcQty=null;
+  if(mCat.value==="bitcoin"){
+    btcQty=rawVal;
+    if(btcPrice){balance=rawVal*btcPrice;}
+    else{alert("Could not load BTC price. Please try again.");return;}
+  }
+  const payload={type:mType.value,category:mCat.value,name,balance};
+  if(address)payload.address=address;
+  if(btcQty!==null)payload.btcQty=btcQty;
+  const ref=await addDoc(collection(db,"users",currentUser.uid,"accounts"),payload);
+  manualAccounts.push({id:ref.id,...payload});
+  document.getElementById("m-name").value="";mBalance.value="";mAddr.value="";
+  document.getElementById("manual-form").hidden=true;render();
+};
+
+async function updateManualBalance(id,value){
+  const num=parseFloat(value)||0;
+  const acc=manualAccounts.find(a=>a.id===id);acc.balance=num;
+  await setDoc(doc(db,"users",currentUser.uid,"accounts",id),acc);render();
+}
+async function deleteManualAccount(id){
+  await deleteDoc(doc(db,"users",currentUser.uid,"accounts",id));
+  manualAccounts=manualAccounts.filter(a=>a.id!==id);render();
+}
+async function refreshBTCValue(id){
+  const acc=manualAccounts.find(a=>a.id===id);
+  if(!acc?.btcQty){alert("No BTC quantity stored.");return;}
+  await fetchBTCPrice();
+  if(!btcPrice){alert("Could not load BTC price.");return;}
+  const nb=acc.btcQty*btcPrice;
+  await updateManualBalance(id,String(nb));
+  alert(`Updated: ${fmt(nb)}\n(${acc.btcQty} BTC × $${btcPrice.toLocaleString()})`);
+}
+
+window.__updateManual=updateManualBalance;
+window.__deleteManual=deleteManualAccount;
+window.__refreshBTC=refreshBTCValue;
+window.__refreshZestimate=async(id)=>{
+  const acc=manualAccounts.find(a=>a.id===id);
+  if(!acc?.address){alert("No address stored.");return;}
+  try{
+    const fn=httpsCallable(functions,"getPropertyValue");
+    const res=await fn({address:acc.address});
+    await updateManualBalance(id,String(res.data.zestimate));
+    alert(`Updated: ${fmt(res.data.zestimate)}\nMatched: ${res.data.address}`);
+  }catch(e){alert("Lookup failed: "+e.message);}
+};
+
+async function loadSnapshots(){
+  const snap=await getDocs(collection(db,"users",currentUser.uid,"snapshots"));
+  snapshots=snap.docs.map(d=>d.data()).sort((a,b)=>a.date.localeCompare(b.date));
+}
+document.getElementById("snapshot-btn").onclick=async()=>{
+  const t=computeTotals();
+  await setDoc(doc(db,"users",currentUser.uid,"snapshots",todayStr()),{
+    date:todayStr(),totalAssets:t.totalAssets,totalLiabilities:t.totalLiabilities,netWorth:t.netWorth
+  });
+  await loadSnapshots();render();
+  alert("Snapshot saved!");
+};
+
+function computeTotals(){
+  let a=0,l=0;
+  plaidAccounts.forEach(x=>{if(x.type==="credit"||x.type==="loan")l+=x.balance||0;else a+=x.balance||0;});
+  manualAccounts.forEach(x=>{if(x.type==="liability")l+=x.balance||0;else a+=x.balance||0;});
+  return{totalAssets:a,totalLiabilities:l,netWorth:a-l};
+}
+
+function render(){
+  const t=computeTotals();
+  document.getElementById("net-worth").textContent=fmt(t.netWorth);
+  document.getElementById("total-assets").textContent=fmt(t.totalAssets);
+  document.getElementById("total-liabilities").textContent=fmt(t.totalLiabilities);
+
+  const prev=[...snapshots].filter(s=>s.date!==todayStr()).pop();
+  const el=document.getElementById("delta");
+  if(prev){
+    const d=t.netWorth-prev.netWorth;
+    const pct=prev.netWorth!==0?(d/Math.abs(prev.netWorth)*100).toFixed(2):"0.00";
+    el.textContent=(d>=0?"▲ +":"▼ ")+fmt(d)+" ("+pct+"%) vs last snapshot";
+    el.className="hero-delta "+(d>=0?"up":"down");
+  } else {el.textContent="Save your first snapshot to track changes";el.className="hero-delta neutral";}
+
+  // Plaid
+  const pw=document.getElementById("plaid-accounts");
+  document.getElementById("plaid-empty").hidden=plaidAccounts.length>0;
+  pw.innerHTML=plaidAccounts.map(a=>`
+    <div class="account-row">
+      <div class="account-icon icon-plaid">📊</div>
+      <div class="account-info">
+        <div class="account-name">${a.name}</div>
+        <div class="account-sub">${a.institutionName} · ${a.subtype||a.type}</div>
+      </div>
+      <div class="account-amount">${fmt(a.balance||0)}</div>
+    </div>`).join("");
+
+  // Manual
+  const renderGroup=(items,isDebt)=>items.map(a=>{
+    const info=catInfo(a.category);
+    let refreshBtn="";
+    if(a.category==="real_estate") refreshBtn=`<button class="btn-refresh" onclick="window.__refreshZestimate('${a.id}')">↻ Zestimate</button>`;
+    else if(a.category==="bitcoin") refreshBtn=`<button class="btn-refresh" onclick="window.__refreshBTC('${a.id}')">↻ BTC Price</button>`;
+    return`<div class="account-row">
+      <div class="account-icon ${info.cls}">${info.icon}</div>
+      <div class="account-info">
+        <div class="account-name">${a.name}</div>
+        <div class="account-sub">${info.label}${a.btcQty?" · "+a.btcQty+" BTC":""}</div>
+      </div>
+      ${refreshBtn}
+      <input class="input-balance" type="number" step="0.01" value="${a.balance.toFixed(2)}" onchange="window.__updateManual('${a.id}',this.value)" />
+      <button class="btn-del" onclick="window.__deleteManual('${a.id}')">×</button>
+    </div>`;
+  }).join("");
+
+  const assets=manualAccounts.filter(a=>a.type==="asset");
+  const liabs=manualAccounts.filter(a=>a.type==="liability");
+  document.getElementById("manual-assets").innerHTML=renderGroup(assets,false);
+  document.getElementById("manual-liabilities").innerHTML=renderGroup(liabs,true);
+  document.getElementById("manual-assets-empty").hidden=assets.length>0;
+  document.getElementById("manual-liabilities-empty").hidden=liabs.length>0;
+  renderTrendChart();
+}
+
+function renderTrendChart(){
+  const card=document.getElementById("trend-card");
+  if(snapshots.length<2){card.hidden=true;return;}
+  card.hidden=false;
+  const W=760,H=180,PL=60,PR=20,PT=10,PB=30;
+  const cw=W-PL-PR,ch=H-PT-PB;
+  const vals=snapshots.map(s=>s.netWorth);
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+  const px=(i)=>PL+i/(snapshots.length-1)*cw;
+  const py=(v)=>PT+ch-(v-min)/range*ch;
+  const pts=snapshots.map((s,i)=>({x:px(i),y:py(s.netWorth),...s}));
+  const pathD=pts.map((p,i)=>(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
+  const areaD=pathD+` L${pts[pts.length-1].x.toFixed(1)},${PT+ch} L${PL},${PT+ch} Z`;
+  const step=Math.max(1,Math.ceil(snapshots.length/6));
+  const xLabels=pts.filter((_,i)=>i%step===0||i===pts.length-1).map(p=>`<text x="${p.x.toFixed(1)}" y="${H}" font-size="11" fill="#94A3B8" text-anchor="middle">${p.date.slice(5)}</text>`).join("");
+  const ySteps=4;
+  const yLabels=Array.from({length:ySteps+1},(_,i)=>{
+    const v=min+(max-min)*i/ySteps;
+    const y=py(v);
+    return`<text x="${PL-8}" y="${y+4}" font-size="11" fill="#94A3B8" text-anchor="end">$${(v/1000).toFixed(0)}k</text><line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="#E2E8F0" stroke-width="1"/>`;
+  }).join("");
+  const dots=pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#C8922A" stroke="#fff" stroke-width="2"><title>${p.date}: ${fmt(p.netWorth)}</title></circle>`).join("");
+  document.getElementById("trend-chart").innerHTML=`
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;">
+      <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C8922A" stop-opacity=".2"/><stop offset="100%" stop-color="#C8922A" stop-opacity="0"/></linearGradient></defs>
+      ${yLabels}
+      <path d="${areaD}" fill="url(#ag)"/>
+      <path d="${pathD}" fill="none" stroke="#C8922A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}${xLabels}
+    </svg>`;
+}
+</script>
+</body>
+</html>
