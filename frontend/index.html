@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Net Worth Dashboard</title>
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<style>
+  :root{--ink:#1B2A4A;--paper:#FAF8F4;--paper-2:#F1ECE1;--gold:#B8923D;--sage:#4A7A5C;--brick:#A23E3E;--border:#DCD5C5;--muted:#8A8470;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Segoe UI',system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:32px 20px;}
+  h1{font-family:Georgia,serif;font-size:28px;margin:4px 0 0;}
+  .eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:700;}
+  .header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:28px;border-bottom:2px solid var(--ink);padding-bottom:14px;}
+  .hero{background:var(--ink);color:var(--paper);border-radius:4px;padding:28px 32px;margin-bottom:24px;position:relative;}
+  .hero .label{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;opacity:.65;margin-bottom:6px;}
+  .hero .amount{font-family:Georgia,serif;font-size:44px;font-weight:700;line-height:1.1;}
+  .hero .row{display:flex;gap:32px;margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.18);}
+  .hero .row div .l{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:1px;}
+  .hero .row div .v{font-size:19px;font-weight:600;}
+  button{cursor:pointer;font-family:inherit;}
+  .btn-gold{background:var(--gold);color:var(--ink);border:none;border-radius:4px;padding:8px 14px;font-size:13px;font-weight:700;}
+  .btn-outline{background:transparent;border:1px solid var(--ink);border-radius:4px;padding:6px 12px;font-size:12px;color:var(--ink);}
+  .btn-dark{background:var(--ink);color:var(--paper);border:none;border-radius:4px;padding:10px;font-size:13px;font-weight:600;width:100%;}
+  .section-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+  .card{background:var(--paper-2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:16px;}
+  .list{border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:20px;}
+  .row-item{display:flex;align-items:center;gap:12px;padding:10px 14px;}
+  .row-item:nth-child(even){background:#FAF8F4;}
+  .row-item:nth-child(odd){background:#fff;}
+  .row-item .name{font-size:13px;font-weight:600;}
+  .row-item .cat{font-size:11px;color:var(--muted);}
+  .row-item input{width:110px;text-align:right;padding:6px 8px;border-radius:4px;border:1px solid var(--border);font-size:13px;font-family:Georgia,serif;}
+  input[type=text],input[type=number],input[type=email],input[type=password],select{padding:9px 10px;border-radius:4px;border:1px solid var(--border);font-size:13px;background:#fff;color:var(--ink);width:100%;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .muted{color:var(--muted);font-size:12px;}
+  .auth-box{max-width:360px;margin:80px auto;text-align:center;}
+  .link-del{background:none;border:none;color:#C7BFA8;padding:4px;cursor:pointer;}
+  .topbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+
+<div id="auth-screen" class="auth-box">
+  <div class="eyebrow">Personal Ledger</div>
+  <h1>로그인</h1>
+  <div class="card" style="margin-top:20px;">
+    <div style="margin-bottom:10px;"><input type="email" id="email" placeholder="이메일" /></div>
+    <div style="margin-bottom:14px;"><input type="password" id="password" placeholder="비밀번호 (6자 이상)" /></div>
+    <button class="btn-dark" id="signin-btn">로그인</button>
+    <div style="margin-top:8px;"><button class="btn-outline" style="width:100%;" id="signup-btn">계정 만들기</button></div>
+    <div id="auth-error" style="color:var(--brick);margin-top:10px;font-size:12px;"></div>
+  </div>
+</div>
+
+<div id="dashboard" class="wrap" hidden>
+  <div class="topbar"><button class="btn-outline" id="logout-btn">로그아웃</button></div>
+  <div class="header">
+    <div><div class="eyebrow">Personal Ledger</div><h1>순자산 대시보드</h1></div>
+    <div class="muted" id="today-date"></div>
+  </div>
+  <div class="hero">
+    <div class="label">순자산 (Net Worth)</div>
+    <div class="amount" id="net-worth">$0</div>
+    <div id="delta" style="margin-top:8px;font-size:14px;"></div>
+    <div class="row">
+      <div><div class="l">총 자산</div><div class="v" style="color:#8FD9A8;" id="total-assets">$0</div></div>
+      <div><div class="l">총 부채</div><div class="v" style="color:#E8A0A0;" id="total-liabilities">$0</div></div>
+    </div>
+    <button class="btn-gold" id="snapshot-btn" style="position:absolute;top:24px;right:24px;">오늘 스냅샷 저장</button>
+  </div>
+  <div class="card" id="trend-card" hidden>
+    <div class="section-title"><span>순자산 추이</span></div>
+    <div id="trend-chart"></div>
+  </div>
+  <div class="section-title">
+    <span>연결된 계좌 — Plaid</span>
+    <button class="btn-outline" id="connect-btn">+ 은행/증권 계좌 연결</button>
+  </div>
+  <div id="plaid-accounts" class="list"></div>
+  <div id="plaid-empty" class="muted" style="margin-bottom:20px;">아직 연결된 계좌가 없습니다.</div>
+  <div class="section-title" style="color:var(--sage);margin-top:8px;">
+    <span>수동 자산</span>
+    <button class="btn-outline" id="add-manual-btn">+ 항목 추가</button>
+  </div>
+  <div class="card" id="manual-form" hidden>
+    <div class="grid2" style="margin-bottom:10px;">
+      <select id="m-type"><option value="asset">자산</option><option value="liability">부채</option></select>
+      <select id="m-category"></select>
+      <input type="text" id="m-name" placeholder="이름 (예: MassMutual IRA)" />
+      <input type="number" id="m-balance" placeholder="잔액 ($)" step="any" />
+      <input type="text" id="m-address" placeholder="주소 (부동산만 해당)" style="grid-column:1/-1;" hidden />
+      <div id="btc-hint" style="font-size:11px;color:var(--gold);grid-column:1/-1;" hidden>BTC 수량 입력 (예: 0.5). 저장 시 현재 시세로 자동 환산됩니다.</div>
+    </div>
+    <button class="btn-dark" id="m-save-btn">추가하기</button>
+  </div>
+  <div id="manual-assets" class="list"></div>
+  <div id="manual-assets-empty" class="muted" style="margin-bottom:20px;">수동으로 추가한 자산이 없습니다.</div>
+  <div class="section-title" style="color:var(--brick);"><span>수동 부채</span></div>
+  <div id="manual-liabilities" class="list"></div>
+  <div id="manual-liabilities-empty" class="muted" style="margin-bottom:20px;">수동으로 추가한 부채가 없습니다.</div>
+  <div class="muted" style="text-align:center;margin-top:30px;line-height:1.6;">MassMutual IRA / 생명보험, 부동산, Bitcoin 등은 수동 입력으로 관리합니다.</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAc9Vv1F1ODTX7358XrSm9FSSfD73rKvn8",
+  authDomain: "networth-yong-app-2026.firebaseapp.com",
+  projectId: "networth-yong-app-2026",
+  storageBucket: "networth-yong-app-2026.firebasestorage.app",
+  messagingSenderId: "572612375699",
+  appId: "1:572612375699:web:24fa7a0673e2e261288966"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const functions = getFunctions(app, "us-central1");
+
+const ASSET_CATS = [
+  {id:"cash",label:"현금 / 은행"},
+  {id:"robinhood",label:"Robinhood (주식)"},
+  {id:"bitcoin",label:"Bitcoin (BTC)"},
+  {id:"ira",label:"MassMutual IRA"},
+  {id:"life_insurance",label:"MassMutual 생명보험"},
+  {id:"real_estate",label:"부동산"},
+  {id:"other_asset",label:"기타 자산"},
+];
+const LIAB_CATS = [
+  {id:"credit_card",label:"신용카드"},
+  {id:"loan",label:"대출"},
+  {id:"mortgage",label:"모기지"},
+  {id:"other_liability",label:"기타 부채"},
+];
+const catLabel = id => [...ASSET_CATS,...LIAB_CATS].find(c=>c.id===id)?.label||id;
+const fmt = n => (n<0?"-":"")+"$"+Math.abs(Math.round(n)).toLocaleString("en-US");
+const todayStr = () => new Date().toISOString().slice(0,10);
+
+let currentUser=null, plaidAccounts=[], manualAccounts=[], snapshots=[], btcPrice=null;
+
+document.getElementById("signin-btn").onclick = async()=>{
+  try{await signInWithEmailAndPassword(auth,email.value,password.value);}
+  catch(e){document.getElementById("auth-error").textContent=e.message;}
+};
+document.getElementById("signup-btn").onclick = async()=>{
+  try{await createUserWithEmailAndPassword(auth,email.value,password.value);}
+  catch(e){document.getElementById("auth-error").textContent=e.message;}
+};
+document.getElementById("logout-btn").onclick = ()=>signOut(auth);
+
+const isOAuthRedirect = new URLSearchParams(window.location.search).has("oauth_state_id");
+
+onAuthStateChanged(auth, async user=>{
+  if(user){
+    currentUser=user;
+    document.getElementById("auth-screen").hidden=true;
+    document.getElementById("dashboard").hidden=false;
+    document.getElementById("today-date").textContent=todayStr();
+    await Promise.all([loadManualAccounts(),refreshPlaidAccounts(),fetchBTCPrice(),loadSnapshots()]);
+    render();
+    if(isOAuthRedirect){
+      const saved=sessionStorage.getItem("plaid_link_token");
+      if(saved) setTimeout(()=>openPlaidLink(saved,true),500);
+    }
+  } else {
+    currentUser=null;
+    document.getElementById("auth-screen").hidden=false;
+    document.getElementById("dashboard").hidden=true;
+  }
+});
+
+async function fetchBTCPrice(){
+  try{
+    const fn=httpsCallable(functions,"getBTCPrice");
+    const res=await fn();
+    btcPrice=res.data.price;
+  }catch(e){
+    try{
+      const res=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+      const data=await res.json();
+      btcPrice=data?.bitcoin?.usd||null;
+    }catch(e2){btcPrice=null;}
+  }
+}
+
+document.getElementById("connect-btn").onclick = async()=>{
+  try{
+    const fn=httpsCallable(functions,"createLinkToken");
+    const res=await fn();
+    sessionStorage.setItem("plaid_link_token",res.data.linkToken);
+    openPlaidLink(res.data.linkToken);
+  }catch(e){alert("계좌 연결 시작 실패: "+e.message);}
+};
+
+function openPlaidLink(linkToken,isOAuth=false){
+  const config={
+    token:linkToken,
+    onSuccess:async(publicToken,metadata)=>{
+      sessionStorage.removeItem("plaid_link_token");
+      const fn=httpsCallable(functions,"exchangePublicToken");
+      await fn({publicToken,institutionName:metadata.institution?.name||"Unknown"});
+      await refreshPlaidAccounts();
+      render();
+    },
+    onExit:err=>{if(err)console.error("Plaid exit",err);}
+  };
+  if(isOAuth) config.receivedRedirectUri=window.location.href;
+  Plaid.create(config).open();
+}
+
+async function refreshPlaidAccounts(){
+  try{const fn=httpsCallable(functions,"getBalances");const res=await fn();plaidAccounts=res.data.accounts||[];}
+  catch(e){console.error("getBalances failed",e);plaidAccounts=[];}
+}
+
+async function loadManualAccounts(){
+  const snap=await getDocs(collection(db,"users",currentUser.uid,"accounts"));
+  manualAccounts=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+const mType=document.getElementById("m-type");
+const mCat=document.getElementById("m-category");
+const mAddr=document.getElementById("m-address");
+const btcHint=document.getElementById("btc-hint");
+const mBalance=document.getElementById("m-balance");
+
+function populateCats(){
+  const cats=mType.value==="asset"?ASSET_CATS:LIAB_CATS;
+  mCat.innerHTML=cats.map(c=>`<option value="${c.id}">${c.label}</option>`).join("");
+  toggleFields();
+}
+function toggleFields(){
+  mAddr.hidden=mCat.value!=="real_estate";
+  btcHint.hidden=mCat.value!=="bitcoin";
+  mBalance.placeholder=mCat.value==="bitcoin"?"BTC 수량 (예: 0.5)":"잔액 ($)";
+}
+mType.onchange=populateCats;
+mCat.onchange=toggleFields;
+populateCats();
+
+document.getElementById("add-manual-btn").onclick=()=>{
+  document.getElementById("manual-form").hidden=!document.getElementById("manual-form").hidden;
+};
+
+document.getElementById("m-save-btn").onclick=async()=>{
+  const name=document.getElementById("m-name").value.trim();
+  const rawVal=parseFloat(mBalance.value)||0;
+  const address=mCat.value==="real_estate"?mAddr.value.trim():"";
+  if(!name)return;
+  let balance=rawVal,btcQty=null;
+  if(mCat.value==="bitcoin"){
+    btcQty=rawVal;
+    if(btcPrice){balance=rawVal*btcPrice;}
+    else{alert("BTC 시세를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");return;}
+  }
+  const payload={type:mType.value,category:mCat.value,name,balance};
+  if(address)payload.address=address;
+  if(btcQty!==null)payload.btcQty=btcQty;
+  const ref=await addDoc(collection(db,"users",currentUser.uid,"accounts"),payload);
+  manualAccounts.push({id:ref.id,...payload});
+  document.getElementById("m-name").value="";
+  mBalance.value="";mAddr.value="";
+  document.getElementById("manual-form").hidden=true;
+  render();
+};
+
+async function updateManualBalance(id,value){
+  const num=parseFloat(value)||0;
+  const acc=manualAccounts.find(a=>a.id===id);
+  acc.balance=num;
+  await setDoc(doc(db,"users",currentUser.uid,"accounts",id),acc);
+  render();
+}
+
+async function deleteManualAccount(id){
+  await deleteDoc(doc(db,"users",currentUser.uid,"accounts",id));
+  manualAccounts=manualAccounts.filter(a=>a.id!==id);
+  render();
+}
+
+async function refreshBTCValue(id){
+  const acc=manualAccounts.find(a=>a.id===id);
+  if(!acc?.btcQty){alert("BTC 수량 정보가 없습니다.");return;}
+  await fetchBTCPrice();
+  if(!btcPrice){alert("BTC 시세를 불러오지 못했습니다.");return;}
+  const newBalance=acc.btcQty*btcPrice;
+  await updateManualBalance(id,String(newBalance));
+  alert(`BTC 시세 업데이트: ${fmt(newBalance)}\n(${acc.btcQty} BTC × $${btcPrice.toLocaleString()})`);
+}
+
+window.__updateManual=updateManualBalance;
+window.__deleteManual=deleteManualAccount;
+window.__refreshBTC=refreshBTCValue;
+window.__refreshZestimate=async(id)=>{
+  const acc=manualAccounts.find(a=>a.id===id);
+  if(!acc?.address){alert("저장된 주소가 없습니다.");return;}
+  try{
+    const fn=httpsCallable(functions,"getPropertyValue");
+    const res=await fn({address:acc.address});
+    await updateManualBalance(id,String(res.data.zestimate));
+    alert(`시세 업데이트: ${fmt(res.data.zestimate)}\n매칭 주소: ${res.data.address}`);
+  }catch(e){alert("시세 조회 실패: "+e.message);}
+};
+
+async function loadSnapshots(){
+  const snap=await getDocs(collection(db,"users",currentUser.uid,"snapshots"));
+  snapshots=snap.docs.map(d=>d.data()).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+document.getElementById("snapshot-btn").onclick=async()=>{
+  const t=computeTotals();
+  await setDoc(doc(db,"users",currentUser.uid,"snapshots",todayStr()),{
+    date:todayStr(),totalAssets:t.totalAssets,totalLiabilities:t.totalLiabilities,netWorth:t.netWorth
+  });
+  await loadSnapshots();render();
+  alert("오늘 스냅샷 저장 완료");
+};
+
+function computeTotals(){
+  let totalAssets=0,totalLiabilities=0;
+  plaidAccounts.forEach(a=>{
+    if(a.type==="credit"||a.type==="loan")totalLiabilities+=a.balance||0;
+    else totalAssets+=a.balance||0;
+  });
+  manualAccounts.forEach(a=>{
+    if(a.type==="liability")totalLiabilities+=a.balance||0;
+    else totalAssets+=a.balance||0;
+  });
+  return{totalAssets,totalLiabilities,netWorth:totalAssets-totalLiabilities};
+}
+
+function render(){
+  const t=computeTotals();
+  document.getElementById("net-worth").textContent=fmt(t.netWorth);
+  document.getElementById("total-assets").textContent=fmt(t.totalAssets);
+  document.getElementById("total-liabilities").textContent=fmt(t.totalLiabilities);
+  const prev=[...snapshots].filter(s=>s.date!==todayStr()).pop();
+  const deltaEl=document.getElementById("delta");
+  if(prev){const d=t.netWorth-prev.netWorth;deltaEl.textContent=(d>=0?"▲":"▼")+" "+fmt(Math.abs(d))+" 전일 스냅샷 대비";deltaEl.style.color=d>=0?"#8FD9A8":"#E8A0A0";}
+  else deltaEl.textContent="";
+
+  const plaidWrap=document.getElementById("plaid-accounts");
+  document.getElementById("plaid-empty").hidden=plaidAccounts.length>0;
+  plaidWrap.innerHTML=plaidAccounts.map(a=>`
+    <div class="row-item">
+      <div style="flex:1;"><div class="name">${a.name}</div><div class="cat">${a.institutionName} · ${a.subtype||a.type}</div></div>
+      <div style="font-family:Georgia,serif;">${fmt(a.balance||0)}</div>
+    </div>`).join("");
+
+  const renderGroup=items=>items.map(a=>{
+    let btn="";
+    if(a.category==="real_estate") btn=`<button class="btn-outline" style="font-size:11px;padding:4px 8px;" onclick="window.__refreshZestimate('${a.id}')">시세↻</button>`;
+    else if(a.category==="bitcoin") btn=`<button class="btn-outline" style="font-size:11px;padding:4px 8px;" onclick="window.__refreshBTC('${a.id}')">시세↻</button>`;
+    return`<div class="row-item">
+      <div style="flex:1;"><div class="name">${a.name}</div><div class="cat">${catLabel(a.category)}${a.btcQty?" · "+a.btcQty+" BTC":""}</div></div>
+      ${btn}
+      <input type="number" value="${a.balance}" onchange="window.__updateManual('${a.id}',this.value)" />
+      <button class="link-del" onclick="window.__deleteManual('${a.id}')">✕</button>
+    </div>`;
+  }).join("");
+
+  const assets=manualAccounts.filter(a=>a.type==="asset");
+  const liabs=manualAccounts.filter(a=>a.type==="liability");
+  document.getElementById("manual-assets").innerHTML=renderGroup(assets);
+  document.getElementById("manual-liabilities").innerHTML=renderGroup(liabs);
+  document.getElementById("manual-assets-empty").hidden=assets.length>0;
+  document.getElementById("manual-liabilities-empty").hidden=liabs.length>0;
+  renderTrendChart();
+}
+
+function renderTrendChart(){
+  const card=document.getElementById("trend-card");
+  if(snapshots.length<2){card.hidden=true;return;}
+  card.hidden=false;
+  const W=800,H=200,PAD=30;
+  const vals=snapshots.map(s=>s.netWorth);
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+  const pts=snapshots.map((s,i)=>({x:PAD+(i/(snapshots.length-1))*(W-PAD*2),y:H-PAD-((s.netWorth-min)/range)*(H-PAD*2),...s}));
+  const pathD=pts.map((p,i)=>(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
+  const areaD=pathD+` L${pts[pts.length-1].x.toFixed(1)},${H-PAD} L${pts[0].x.toFixed(1)},${H-PAD} Z`;
+  const step=Math.ceil(snapshots.length/6);
+  const labels=pts.filter((_,i)=>i%step===0||i===pts.length-1).map(p=>`<text x="${p.x.toFixed(1)}" y="${H-8}" font-size="10" fill="#8A8470" text-anchor="middle">${p.date.slice(5)}</text>`).join("");
+  const dots=pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#B8923D"><title>${p.date}: ${fmt(p.netWorth)}</title></circle>`).join("");
+  document.getElementById("trend-chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:200px;"><path d="${areaD}" fill="#B8923D" opacity="0.08"/><path d="${pathD}" fill="none" stroke="#B8923D" stroke-width="2"/>${dots}${labels}</svg>`;
+}
+</script>
+</body>
+</html>
