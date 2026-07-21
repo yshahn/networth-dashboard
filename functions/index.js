@@ -442,20 +442,14 @@ exports.getCoinbaseBalances = onCall(
     let jwt;
     try {
       // Ed25519 raw private key (32 bytes) — wrap into DER/PEM for Node crypto
-      const rawKeyBytes = Buffer.from(rawSecret, "base64");
+const rawKeyBytes = Buffer.from(rawSecret, "base64");
+      const privateKeyBytes = rawKeyBytes.length === 64
+        ? rawKeyBytes.slice(0, 32)
+        : rawKeyBytes;
 
-      let keyObject;
-      if (rawKeyBytes.length === 32) {
-        // Raw Ed25519 private key — wrap into PKCS#8 DER
-        const pkcs8Header = Buffer.from(
-          "302e020100300506032b657004220420", "hex"
-        );
-        const pkcs8Der = Buffer.concat([pkcs8Header, rawKeyBytes]);
-        keyObject = crypto.createPrivateKey({ key: pkcs8Der, format: "der", type: "pkcs8" });
-      } else {
-        // Already PEM or longer format — try directly
-        keyObject = crypto.createPrivateKey({ key: rawKeyBytes, format: "der", type: "pkcs8" });
-      }
+      const pkcs8Header = Buffer.from("302e020100300506032b657004220420", "hex");
+      const pkcs8Der = Buffer.concat([pkcs8Header, privateKeyBytes]);
+      const keyObject = crypto.createPrivateKey({ key: pkcs8Der, format: "der", type: "pkcs8" });
 
       const sig = crypto.sign(null, Buffer.from(signingInput), keyObject);
       jwt = `${signingInput}.${sig.toString("base64url")}`;
