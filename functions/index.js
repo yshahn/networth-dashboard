@@ -418,52 +418,71 @@ exports.getCoinbaseBalances = onCall(
   async (request) => {
     requireAuth(request);
 
-    const apiKey = COINBASE_API_KEY.value();
-    const apiSecret = COINBASE_API_SECRET.value();
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const method = "GET";
-    const path = "/api/v3/brokerage/accounts";
-    const body = "";
+    const apiKey    = COINBASE_API_KEY.value();
+    const secretPem = COINBASE_API_SECRET.value();
+    const crypto    = require("crypto");
 
-    // HMAC-SHA256 signature
-    const crypto = await import("crypto");
-    const message = timestamp + method + path + body;
-    const signature = crypto
-      .createHmac("sha256", apiSecret)
-      .update(message)
-      .digest("hex");
+    const host      = "api.coinbase.com";
+    const path      = "/api/v3/brokerage/accounts";
+    const method    = "GET";
+    const nonce     = crypto.randomBytes(16).toString("hex");
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    const header  = Buffer.from(JSON.stringify({ alg:"ES256", kid: apiKey, nonce })).toString("base64url");
+    const payload = Buffer.from(JSON.stringify({
+      sub: apiKey,
+      iss: "cdp",
+      nbf: timestamp,
+      exp: timestamp + 120,
+      uri: `${method} ${host}${path}`,
+    })).toString("base64url");
+
+    const signingInput = `${header}.${payload}`;
+
+    let pemKey = secretPem.trim();
+    if (!pemKey.includes("BEGIN")) {
+      pemKey = `-----BEGIN PRIVATE KEY-----\n${pemKey}\n-----END PRIVATE KEY-----`;
+    }
+
+    let jwt;
+    try {
+      const keyObject = crypto.createPrivateKey({ key: pemKey, format: "pem" });
+      const sig = crypto.sign(null, Buffer.from(signingInput), keyObject);
+      jwt = `${signingInput}.${sig.toString("base64url")}`;
+    } catch (err) {
+      logger.error("getCoinbaseBalances: JWT signing failed", err.message);
+      throw new HttpsError("internal", "Coinbase 인증 서명 실패: " + err.message);
+    }
 
     try {
-      const res = await fetch(`https://api.coinbase.com${path}?limit=250`, {
+      const res = await fetch(`https://${host}${path}?limit=250`, {
         method,
         headers: {
-          "CB-ACCESS-KEY": apiKey,
-          "CB-ACCESS-SIGN": signature,
-          "CB-ACCESS-TIMESTAMP": timestamp,
+          "Authorization": `Bearer ${jwt}`,
           "Content-Type": "application/json",
         },
       });
 
       if (!res.ok) {
         const text = await res.text();
-        logger.error("Coinbase API failed", res.status, text);
-        throw new HttpsError("internal", "Coinbase 잔고 조회에 실패했습니다.");
+        logger.error("Coinbase API error", res.status, text);
+        throw new HttpsError("internal", `Coinbase API 오류 (${res.status}): ${text}`);
       }
 
       const data = await res.json();
       const accounts = (data.accounts || [])
-        .filter((acc) => parseFloat(acc.available_balance?.value || 0) > 0)
-        .map((acc) => ({
-          name: acc.name,
+        .filter(acc => parseFloat(acc.available_balance?.value || 0) > 0)
+        .map(acc => ({
+          name:     acc.name,
           currency: acc.currency,
-          balance: parseFloat(acc.available_balance?.value || 0),
+          balance:  parseFloat(acc.available_balance?.value || 0),
           valueUSD: parseFloat(acc.available_balance?.value || 0),
         }));
 
       return { accounts };
     } catch (err) {
       if (err instanceof HttpsError) throw err;
-      logger.error("getCoinbaseBalances failed", err);
+      logger.error("getCoinbaseBalances fetch failed", err);
       throw new HttpsError("internal", "Coinbase 잔고 조회 중 오류가 발생했습니다.");
     }
   }
