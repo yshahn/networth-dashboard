@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D2035"/>
+      <stop offset="100%" stop-color="#0B1929"/>
+    </linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C8922A" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#C8922A" stop-opacity="0.02"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect x="0" y="0" width="512" height="512" rx="108"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="512" height="512" rx="108" fill="url(#bg)"/>
+
+  <g clip-path="url(#clip)">
+    <!-- Subtle grid lines -->
+    <line x1="52" y1="160" x2="460" y2="160" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1"/>
+    <line x1="52" y1="240" x2="460" y2="240" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1"/>
+    <line x1="52" y1="320" x2="460" y2="320" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1"/>
+    <line x1="52" y1="400" x2="460" y2="400" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1"/>
+
+    <!-- Area fill under trend line -->
+    <path d="M72,390 L172,298 L282,218 L392,140 L460,105 L460,420 L72,420 Z" fill="url(#area)"/>
+
+    <!-- Trend line -->
+    <polyline
+      points="72,390 172,298 282,218 392,140"
+      fill="none"
+      stroke="#C8922A"
+      stroke-width="22"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Dots on each point -->
+    <circle cx="72"  cy="390" r="16" fill="#0B1929" stroke="#C8922A" stroke-width="8"/>
+    <circle cx="172" cy="298" r="16" fill="#0B1929" stroke="#C8922A" stroke-width="8"/>
+    <circle cx="282" cy="218" r="16" fill="#0B1929" stroke="#C8922A" stroke-width="8"/>
+
+    <!-- Last dot — larger, highlighted -->
+    <circle cx="392" cy="140" r="22" fill="#C8922A"/>
+    <circle cx="392" cy="140" r="11" fill="#FFFFFF" fill-opacity="0.35"/>
+
+    <!-- Bottom label "PL" -->
+    <text
+      x="256" y="472"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="38"
+      font-weight="700"
+      fill="#C8922A"
+      fill-opacity="0.7"
+      text-anchor="middle"
+      letter-spacing="10"
+    >PL</text>
+  </g>
+</svg>
